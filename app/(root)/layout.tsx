@@ -4,12 +4,11 @@ import Link from "next/link"
 import { isAuthenticated } from "@/lib/actions/auth.action"
 import {redirect} from "next/navigation";
 
-const RootLayout = async ({ children }: { children: ReactNode}) => {
-  const isUserAuthenticated = await isAuthenticated();
+const Layout = async ({ children }: { children: ReactNode}) => {
+  const isUserAuthenticated = await isAuthenticated(); 
 
-  // if(!isUserAuthenticated) redirect('/');
-
-  
+  if(!isUserAuthenticated) redirect("/sign-in");
+ 
   return (
     <div className="root-layout">
       <nav>
@@ -17,9 +16,10 @@ const RootLayout = async ({ children }: { children: ReactNode}) => {
           <Image src="/logo.svg" alt="Logo" width={38} height={32} />
           <h2 className="text-primary-100">SpeakPeak</h2>
         </Link>
+
        <small className="text-muted-foreground text-sm italic ml-10">
-  Where preparation meets confidence.
-</small>
+        Where preparation meets confidence.
+      </small>
 
       </nav>
 
@@ -27,4 +27,10 @@ const RootLayout = async ({ children }: { children: ReactNode}) => {
     </div>
   );
 };
-export default RootLayout;
+export default Layout;
+
+
+
+
+
+

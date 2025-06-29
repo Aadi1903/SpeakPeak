@@ -1,4 +1,4 @@
-'use server';
+"use server";
 import { db, auth } from '@/firebase/admin';
 // import { CollectionReference } from 'firebase-admin/firestore';
 // import { documentId } from 'firebase/firestore';
@@ -15,6 +15,28 @@ interface SignUpParams {
     uid?: string;
     idToken?: string;
 }
+
+
+export async function setSessionCookie(idToken: string){
+    const cookieStore = await cookies();
+
+    const sessionCookie = await auth.createSessionCookie(idToken, {
+        expiresIn: ONE_WEEK* 1000,
+    });
+
+    cookieStore.set('session', sessionCookie, {
+        maxAge: ONE_WEEK,
+        httpOnly: true,
+        secure: process.env.MODE_ENV === 'production',
+        path: '/',
+        sameSite: 'lax',
+    });
+}
+
+
+
+
+
 
 export async function signUp(params: SignUpParams){
     const { uid, name, email } = params;
@@ -38,12 +60,12 @@ export async function signUp(params: SignUpParams){
 
         await db.collection('users').doc(uid).set({
             name,email
-        })
+        });
 
         return {
             success: true,
-            message: 'Account created successfully. Please sign in.'
-        }
+            message: 'Account created successfully. Please sign in.',
+        };
 
     }catch (e: unknown){
         console.error('Error creating a user', e);
@@ -52,13 +74,13 @@ export async function signUp(params: SignUpParams){
             return {
                 success: false,
                 message: 'Email already in use. Please try a different email.'
-            }
+            };
         }
 
         return {
             success: false,
             message: 'An error occurred while creating the user. Please try again later.'
-        }
+        };
     }
 }
 
@@ -73,8 +95,8 @@ export async function signIn(params: SignUpParams){
         if(!userRecord){
             return{
                 success: false,
-                message: 'User does not exist. Create an account instead.'
-            }
+                message: 'User does not exist. Create an account instead.',
+            };
         }
 
         if (!idToken) {
@@ -85,44 +107,32 @@ export async function signIn(params: SignUpParams){
         }
         await setSessionCookie(idToken);
 
-    }catch (e){
-        console.log(e);
+    }catch (error :unknown){
+        console.log(error);
 
         return{
             success: false,
-            message: 'Failed to log into an account'
-        }
+            message: 'Failed to log into an account',
+        };
     }
 }
 
 
-
-
-export async function setSessionCookie(idToken: string){
+export async function signout(){
     const cookieStore = await cookies();
-
-    const sessionCookie = await auth.createSessionCookie(idToken, {
-        expiresIn: ONE_WEEK* 1000,
-    })
-
-    cookieStore.set('session', sessionCookie, {
-        maxAge: ONE_WEEK,
-        httpOnly: true,
-        secure: process.env.MODE_ENV === 'production',
-        path: '/',
-        sameSite: 'lax',
-    })
+    cookieStore.delete("session");
 }
 
 
+
+
+
 export async function getCurrentUser(): Promise<User | null>{
+    try{
     const cookieStore = await cookies();
-
     const sessionCookie = cookieStore.get('session')?.value;
-
     if(!sessionCookie) return null;
 
-    try{
         const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
 
         const userRecord = await db.
@@ -137,16 +147,16 @@ export async function getCurrentUser(): Promise<User | null>{
 
         }as User;
 
-    }catch(e){
-        console.log(e)
+    }catch{
+        const cookieStore = await cookies();
+        cookieStore.delete('session');
+        return null;
     }
-
-    return null;
 }
 
 
 export async function isAuthenticated(){
     const user = await getCurrentUser();
 
-    return !! user;   
+    return !!user;   
 }
