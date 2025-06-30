@@ -19,7 +19,7 @@ interface SignUpParams {
 
 export async function setSessionCookie(idToken: string){
     const cookieStore = await cookies();
-
+try{
     const sessionCookie = await auth.createSessionCookie(idToken, {
         expiresIn: ONE_WEEK* 1000,
     });
@@ -31,6 +31,11 @@ export async function setSessionCookie(idToken: string){
         path: '/',
         sameSite: 'lax',
     });
+    console.log('Session cookie set successfully');
+  } catch (error) {
+    console.error('Error setting session cookie:', error);
+    throw error;
+  }
 }
 
 
@@ -106,7 +111,7 @@ export async function signIn(params: SignUpParams){
             }
         }
         await setSessionCookie(idToken);
-
+return { success: true, message: 'Sign in successful.' };
     }catch (error :unknown){
         console.log(error);
 
@@ -131,27 +136,35 @@ export async function getCurrentUser(): Promise<User | null>{
     try{
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get('session')?.value;
-    if(!sessionCookie) return null;
+    if(!sessionCookie) 
+        {
+    console.log('No session cookie found');
+    return null;
+  }
 
         const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
+        console.log('Session cookie verified for user:', decodedClaims.uid);
 
         const userRecord = await db.
         collection('users')
         .doc(decodedClaims.uid)
         .get();
 
-        if(!userRecord.exists) return null;
+        if(!userRecord.exists) 
+            {
+      console.log('User record not found in Firestore for UID:', decodedClaims.uid);
+      return null;
+    }
         return{
             ...userRecord.data(),
             id: userRecord.id,
 
         }as User;
 
-    }catch{
-        const cookieStore = await cookies();
-        cookieStore.delete('session');
-        return null;
-    }
+    }catch (error) {
+    console.error('Error verifying session cookie:', error);
+    return null;
+  }
 }
 
 

@@ -205,7 +205,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
         });
 
         if(!result?.success){
-          toast.error(result?.message);
+        toast.error(result?.message || 'Sign-up failed.');
           return;
         }
 
@@ -224,20 +224,29 @@ const AuthForm = ({ type }: { type: FormType }) => {
           return;
         }
 
-        await signIn({
-          email,
-          password,
-          idToken
-        })
+        // await signIn({
+        //   email,
+        //   password,
+        //   idToken
+        // })
+
+        const result = await signIn({ email, password, idToken });
+      if (!result?.success) {
+        toast.error(result?.message || 'Sign-in failed.');
+        return;
+      }
 
         toast.success('Sign in successfully!')
         router.push('/')
       }
-    } catch (error) {
-      // toast.error('An error occurred. Please try again.')
-      console.error(error);
-      toast.error(`There was an error: ${error}`);
-    }
+    } catch (error: unknown) {
+  console.error('AuthForm error:', error);
+  let message = 'An error occurred. Please try again.';
+  if (typeof error === 'object' && error !== null && 'code' in error) {
+    message = `Authentication failed: ${(error as { code: string }).code}`;
+  }
+  toast.error(message);
+}
   }
 
   return (
